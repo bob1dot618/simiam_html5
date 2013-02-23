@@ -1,4 +1,6 @@
 // copyright 2013, Robert Monsen. All Rights Reserved.
+// permission is granted for individual use, provided
+// this copyright statement remains intact.
 
 // robot class file. The 'run_robot()' function below runs it. It is
 // called from the XML reader that gets the obstacles, in samiam.html.
@@ -53,9 +55,9 @@ var robot_sensors =
 
 var INTERVAL = 100;
 function Robot(context, pose) {
-    var V = 0.2;                // velocity in m/s
+    var V = 0.4;                // velocity in m/s
     var DT = INTERVAL / 1000.0; // time step in s
-    var Kp = 0.05;              // this number defines how quickly the
+    var Kp = 0.06;              // this number defines how quickly the
                                 // system tracks towards the reference
                                 // signal (in this case, the bearing
                                 // away from obstacles. Small is
@@ -63,7 +65,7 @@ function Robot(context, pose) {
                                 // it to crash into obstacles (or the
                                 // wall). Related to V, since a faster 
                                 // robot should turn more quickly
-    var Obst_Speed = 0.08;      // speed that the robot will move when
+    var Obst_Speed = 0.05;      // speed that the robot will move when
                                 // navigating obstacles
     this.pose = pose;
     this.context = context;

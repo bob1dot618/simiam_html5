@@ -1,4 +1,6 @@
 // copyright 2013, Robert Monsen. All Rights Reserved.
+// permission is granted for individual use, provided
+// this copyright statement remains intact.
 
 // polygon intersection code. Used for sensors to determine if the
 // sensor sees an obstacle.

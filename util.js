@@ -1,4 +1,6 @@
 // copyright 2013, Robert Monsen. All Rights Reserved.
+// permission is granted for individual use, provided
+// this copyright statement remains intact.
 
 // ensure that angle is in the range [-PI, PI)
 function normalize_angle(angle) {

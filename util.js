@@ -15,8 +15,13 @@ function cartesian_to_polar(pt) {
             // screwed
             return [0, 0];
         }
-        angle = Math.PI/2;      // pointing straight up!
-        r = Math.abs(pt[1]);
+        if (pt[1] < 0) {
+            angle = -Math.PI/2; // pointing down
+            r = -pt[1];
+        } else {
+            angle = Math.PI/2;  // pointing up
+            r = pt[1];
+        }
     } else {
         angle = Math.atan2(pt[1], pt[0]);
         r = Math.sqrt(pt[0]*pt[0] + pt[1]*pt[1]);

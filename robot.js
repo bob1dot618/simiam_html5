@@ -53,9 +53,18 @@ var robot_sensors =
 
 var INTERVAL = 100;
 function Robot(context, pose) {
-    var V = 0.2;
-    var DT = INTERVAL / 1000.0;
-
+    var V = 0.2;                // velocity in m/s
+    var DT = INTERVAL / 1000.0; // time step in s
+    var Kp = 0.05;              // this number defines how quickly the
+                                // system tracks towards the reference
+                                // signal (in this case, the bearing
+                                // away from obstacles. Small is
+                                // smoother, but too small will cause
+                                // it to crash into obstacles (or the
+                                // wall). Related to V, since a faster 
+                                // robot should turn more quickly
+    var Obst_Speed = 0.08;      // speed that the robot will move when
+                                // navigating obstacles
     this.pose = pose;
     this.context = context;
     this.sensor_local_polygons = [];
@@ -163,11 +172,13 @@ function Robot(context, pose) {
             // this is a bit tricky. angular_max comes from the robot_sensors array
             // defined above. Each sensor has a angle defined as the direction to
             // turn if the sensor sees something. We add it into angle to turn the
-            // system. Dividing by 5 is a hack, that smooths things out a bit.
+            // system. 
 
-            angle += angular_max / 5; 
+            // if you think about it, angular_max is the error signal.
+            
+            angle += angular_max * Kp;
             angle = normalize_angle(angle); // normalize the angle to be in [PI,-PI)
-            v *= 0.5;                       // slow down if we see an obstacle
+            v = Obst_Speed;     // slow down if we see an obstacle
         }
 
         // add some randomness to the mix

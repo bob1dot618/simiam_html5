@@ -75,6 +75,9 @@ function Robot(context, pose) {
                                 // wall). Related to V, since a faster 
                                 // robot should turn more quickly
 
+    var randomness = 0.05;      // how much random noise should be
+                                // added to the angle
+
     this.pose = pose;
     this.context = context;
     this.sensor_local_polygons = [];
@@ -164,12 +167,33 @@ function Robot(context, pose) {
         // check the sensors, set up angular_max, which holds the
         // maximum deflection we need.
 
+        // The sensor_vector contains a 'true' for each sensor that is
+        // detecting an object. There is no sense of how far away the
+        // object is; it is just seen. This models the Sharp IR
+        // sensors that give a logic signal if something is seen.
+
         var sensor_vector = this.sensor_vector();
         for (var i = 0; i < sensor_vector.length; i++) {
             if (sensor_vector[i]) {
-                // only keep the largest, don't average
+                // only keep the largest, don't average. I was
+                // averaging before, but it was causing problems,
+                // since if more of the sensors were activated, it
+                // could dilute the response. So, instead, I now have
+                // a local heading associated with each sensor, called
+                // 'deflection'. It defines the 'error' from the
+                // reference, which is of course the current angle.
+
                 if (Math.abs(angular_max) < Math.abs(robot_sensors[i].deflection)) {
                     angular_max = robot_sensors[i].deflection;
+
+                    // The speed_multiplier is a hack. If a sensor
+                    // sees something, the front sensors clearly need
+                    // more time to turn than the side sensors. So,
+                    // each sensor has a number from 0 to 1 associated
+                    // with it to let the system know how much to slow down.
+                    // front facing sensors have smaller numbers, side
+                    // sensors have larger numbers.
+
                     speed_multiplier = robot_sensors[i].speed_multiplier;
                 }
             }
@@ -185,16 +209,20 @@ function Robot(context, pose) {
             // system. 
 
             // if you think about it, angular_max is the error signal.
-            
+            // I don't bother with a full PID here. Just follow the error signal around
+            // using the proportional term.
+
             angle += angular_max * Kp;
             angle = normalize_angle(angle); // normalize the angle to be in [PI,-PI)
             v = V * speed_multiplier;
         }
 
-        // add some randomness to the mix
-        angle += (Math.random() - 0.5) * Math.PI * 0.05;
+        // add some randomness to the mix. This makes the simulation a
+        // bit less predictable.
 
-        // update the pose using euler integration
+        angle += (Math.random() - 0.5) * Math.PI * randomness;
+
+        // update the pose using euler integration. no runge kutta for me!
         var co = Math.cos(angle);
         var si = Math.sin(angle);
 

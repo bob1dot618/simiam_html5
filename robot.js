@@ -42,15 +42,24 @@ var sensor_polygon = [[0,0,0], [0.197, 0.035, 0], [0.197, -0.035, 0]];
 var robot_sensors =
     [
         // x, y, angle of repose, angle to use when sensor is activated
-        [0.019,   0.064, 75*Math.PI/180, -(90-75)*Math.PI/180],
-        [0.050,   0.050, 42*Math.PI/180, -(90-42)*Math.PI/180],
-        [0.070,   0.017, 13*Math.PI/180, -(90-13)*Math.PI/180],
-        [0.070,  -0.017, -13*Math.PI/180, -(13-90)*Math.PI/180],
-        [0.050,  -0.050, -42*Math.PI/180, -(42-90)*Math.PI/180],
-        [0.019,  -0.064, -75*Math.PI/180, -(75-90)*Math.PI/180],
-        [-0.038,  0.048, 128*Math.PI/180, 0], // don't use rear facing sensors
-        [-0.038, -0.048, -128*Math.PI/180, 0],
-        [-0.048,  0.000, 180*Math.PI/180, 0],
+        {pos: [0.019, 0.064], theta: 75*Math.PI/180, 
+         deflection: -(90-75)*Math.PI/180, speed_multiplier: .9},
+        {pos: [0.050, 0.050], theta: 42*Math.PI/180, 
+         deflection: -(90-42)*Math.PI/180, speed_multiplier: .5},
+        {pos: [0.070,   0.017], theta: 13*Math.PI/180, 
+         deflection: -(90-13)*Math.PI/180, speed_multiplier: .1},
+        {pos: [0.070,  -0.017], theta: -13*Math.PI/180, 
+         deflection: -(13-90)*Math.PI/180, speed_multiplier: .1},
+        {pos: [0.050,  -0.050], theta: -42*Math.PI/180, 
+         deflection: -(42-90)*Math.PI/180, speed_multiplier: .5},
+        {pos: [0.019,  -0.064], theta: -75*Math.PI/180, 
+         deflection: -(75-90)*Math.PI/180, speed_multiplier: .9},
+        {pos: [-0.038,  0.048], theta: 128*Math.PI/180, 
+         deflection: 0, speed_multiplier: 1}, // don't use rear facing sensors
+        {pos: [-0.038, -0.048], theta: -128*Math.PI/180, 
+         deflection: 0, speed_multiplier: 1},
+        {pos: [-0.048,  0.000], theta: 180*Math.PI/180, 
+         deflection: 0, speed_multiplier: 1},
     ];
 
 var INTERVAL = 100;
@@ -65,20 +74,19 @@ function Robot(context, pose) {
                                 // it to crash into obstacles (or the
                                 // wall). Related to V, since a faster 
                                 // robot should turn more quickly
-    var Obst_Speed = 0.05;      // speed that the robot will move when
-                                // navigating obstacles
+
     this.pose = pose;
     this.context = context;
     this.sensor_local_polygons = [];
     for (var i = 0; i < robot_sensors.length; i++) {
         sensor = robot_sensors[i];
-        var poly = rotate_poly(sensor_polygon, sensor[2]);
-        poly = translate_poly(poly, sensor);
+        var poly = rotate_poly(sensor_polygon, sensor.theta);
+        poly = translate_poly(poly, sensor.pos);
         poly.push(poly[0]);     // add first element to end again
         this.sensor_local_polygons[i] = poly;
     }
 
-    this.move = function(pose) {
+    Robot.prototype.move = function(pose) {
         this.inner_polygon = translate_poly(rotate_poly(robot_inner, pose[2]), pose);
         this.outer_polygon = translate_poly(rotate_poly(robot_outer, pose[2]), pose);
         this.sensor_polygons = [];
@@ -89,10 +97,7 @@ function Robot(context, pose) {
         }
     };
 
-    // set up the sensor_polygons
-    this.move(this.pose);
-
-    this.draw = function() {
+    Robot.prototype.draw = function() {
         this.context.clearRect(0,0,1280,720); // hack
         this.context.save();
         this.context.translate(X, Y); // X and Y are external, defined in samiam.html
@@ -116,14 +121,14 @@ function Robot(context, pose) {
         this.context.restore();
     };
 
-    this.draw_polygon = function(poly) {
+    Robot.prototype.draw_polygon = function(poly) {
         this.context.moveTo(sv*poly[0][0], sv*poly[0][1]);
         for (var i = 1; i < poly.length; i++) {
             this.context.lineTo(sv*poly[i][0], sv*poly[i][1]);
         }
     };
 
-    this.sensor_vector = function() {
+    Robot.prototype.sensor_vector = function() {
         // return an array of boolean values indicating whether the
         // sensor has seen something.
 
@@ -154,15 +159,18 @@ function Robot(context, pose) {
         var angle = this.pose[2]; // current angle
         var v = V;                // normal velocity
         var angular_max = 0;      // maximum sensor angle obtained
+        var speed_multiplier = 1;
 
         // check the sensors, set up angular_max, which holds the
         // maximum deflection we need.
+
         var sensor_vector = this.sensor_vector();
         for (var i = 0; i < sensor_vector.length; i++) {
             if (sensor_vector[i]) {
                 // only keep the largest, don't average
-                if (Math.abs(angular_max) < Math.abs(robot_sensors[i][3])) {
-                    angular_max = robot_sensors[i][3];
+                if (Math.abs(angular_max) < Math.abs(robot_sensors[i].deflection)) {
+                    angular_max = robot_sensors[i].deflection;
+                    speed_multiplier = robot_sensors[i].speed_multiplier;
                 }
             }
         }
@@ -180,11 +188,11 @@ function Robot(context, pose) {
             
             angle += angular_max * Kp;
             angle = normalize_angle(angle); // normalize the angle to be in [PI,-PI)
-            v = Obst_Speed;     // slow down if we see an obstacle
+            v = V * speed_multiplier;
         }
 
         // add some randomness to the mix
-        angle += (Math.random() - 0.5) * Math.PI * 0.03;
+        angle += (Math.random() - 0.5) * Math.PI * 0.05;
 
         // update the pose using euler integration
         var co = Math.cos(angle);
@@ -198,8 +206,11 @@ function Robot(context, pose) {
         // move the robot
         this.move(this.pose);
         this.draw();
-    }
-}
+    };
+
+    // set up the sensor_polygons
+    this.move(this.pose);
+};
 
 function run_robot(ctx, pose) {
     var r = new Robot(ctx, pose);
@@ -207,4 +218,4 @@ function run_robot(ctx, pose) {
         r.controller();
     }
     setInterval(cb, INTERVAL);
-}
+};

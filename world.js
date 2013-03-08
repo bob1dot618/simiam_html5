@@ -5,6 +5,7 @@ var sv = 200;
 var X = 400;
 var Y = 400;
 var goal = null;
+var goal_poly = null;
 
 var obsts;
 
@@ -45,8 +46,8 @@ function loadXML() {
         for (var ip = 0; ip < points.length; ip++) {
             obstacle[ip] = [1*points[ip].attributes['x'].value, 1*points[ip].attributes['y'].value];
         }
-        obstacle = rotate_poly(obstacle, pose[2]);
-        obstacle = translate_poly(obstacle, pose);
+        obstacle = util.rotate_poly(obstacle, pose[2]);
+        obstacle = util.translate_poly(obstacle, pose);
         obstacles[nobstacles++] = obstacle;
     }
     obsts = obstacles;

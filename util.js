@@ -2,12 +2,14 @@
 // permission is granted for individual use, provided
 // this copyright statement remains intact.
 
+var util = new Object();
+
 // ensure that angle is in the range [-PI, PI)
-function normalize_angle(angle) {
+util.normalize_angle = function(angle) {
     return Math.atan2(Math.sin(angle),Math.cos(angle));
 }
 
-function cartesian_to_polar(pt) {
+util.cartesian_to_polar = function(pt) {
     var angle;
     var r;
 
@@ -32,7 +34,7 @@ function cartesian_to_polar(pt) {
     return [r, angle];
 }
 
-function polar_to_cartesian(pt) {
+util.polar_to_cartesian = function(pt) {
     var angle = pt[1];
     var r = pt[0];
 
@@ -40,26 +42,26 @@ function polar_to_cartesian(pt) {
 }
 
 // rotate a point around the origin by theta radians
-function rotate_pt(pt, theta) {
-    ppt = cartesian_to_polar(pt);
+util.rotate_pt = function(pt, theta) {
+    ppt = util.cartesian_to_polar(pt);
     ppt[1] += theta;
-    ppt[1] = normalize_angle(ppt[1]);
+    ppt[1] = util.normalize_angle(ppt[1]);
 
     // convert back to cartesian coordinates
-    return polar_to_cartesian(ppt);
+    return util.polar_to_cartesian(ppt);
 }
 
 // rotate a polygon around the origin by theta radians
-function rotate_poly(poly, theta) {
+util.rotate_poly = function(poly, theta) {
     var result = [];
 
     for (var i = 0; i < poly.length; i++) {
-        result[i] = rotate_pt(poly[i], theta);
+        result[i] = util.rotate_pt(poly[i], theta);
     }
     return result;
 }
 
-function translate_poly(poly, pt) {
+util.translate_poly = function(poly, pt) {
     var result = [];
 
     for (var i = 0; i < poly.length; i++) {
@@ -68,11 +70,37 @@ function translate_poly(poly, pt) {
     return result;
 }
 
-function print_poly(poly) {
+util.print_poly = function(poly) {
     console.log('polygon: ');
     for (var i=0; i < poly.length; i++) {
         console.log(poly[i][0], poly[i][1]);
     }
+}
+
+//http://js-tut.aardon.de/js-tut/tutorial/position.html
+util.getElementPosition = function(element) {
+    var elem=element, tagname="", x=0, y=0;
+    
+    while((typeof(elem) == "object") && (typeof(elem.tagName) != "undefined")) {
+        y += elem.offsetTop;
+        x += elem.offsetLeft;
+        tagname = elem.tagName.toUpperCase();
+
+        if(tagname == "BODY")
+            elem=0;
+
+        if(typeof(elem) == "object") {
+            if(typeof(elem.offsetParent) == "object")
+                elem = elem.offsetParent;
+        }
+    }
+
+    return {x: x, y: y};
+}
+
+util.distance = function(a,b) {
+    d = [b[0]-a[0], b[1]-a[1]];
+    return Math.sqrt(d[0]*d[0] + d[1]*d[1]);
 }
 
 // function test_rotate() {

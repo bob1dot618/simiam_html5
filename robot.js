@@ -6,7 +6,9 @@
 // called from the XML reader that gets the obstacles, in samiam.html.
 
 // the robot variables that define the shape of the thing
-var robot_inner = 
+var robot_data = new Object();
+
+robot_data.robot_inner = 
     [
         [-0.031,  0.043, 0],
         [-0.031, -0.043, 0],
@@ -18,7 +20,7 @@ var robot_inner =
         [-0.031,  0.043, 0],    // repeated element, simplifies logic
     ];
 
-var robot_outer = 
+robot_data.robot_outer = 
     [
         [-0.024,  0.064, 0],
         [ 0.033,  0.064, 0],
@@ -36,10 +38,10 @@ var robot_outer =
     ];
 
 // this is the unrotated polygon for a sensor
-var sensor_polygon = [[0,0,0], [0.197, 0.035, 0], [0.197, -0.035, 0]];
+robot_data.sensor_polygon = [[0,0,0], [0.197, 0.035, 0], [0.197, -0.035, 0]];
 
 // sensor location data for the sensors the robot uses to navigate
-var robot_sensors =
+robot_data.robot_sensors =
     [
         // x, y, angle of repose, angle to use when sensor is activated
         {pos: [0.019, 0.064], theta: 75*Math.PI/180, 
@@ -66,7 +68,7 @@ var INTERVAL = 100;
 function Robot(context, pose) {
     var V = 0.4;                // velocity in m/s
     var DT = INTERVAL / 1000.0; // time step in s
-    var Kp = 0.06;              // this number defines how quickly the
+    var Kp = 2.0;               // this number defines how quickly the
                                 // system tracks towards the reference
                                 // signal (in this case, the bearing
                                 // away from obstacles. Small is
@@ -75,28 +77,28 @@ function Robot(context, pose) {
                                 // wall). Related to V, since a faster 
                                 // robot should turn more quickly
 
-    var randomness = 0.05;      // how much random noise should be
+    var randomness = 1.0;       // how much random noise should be
                                 // added to the angle
 
     this.pose = pose;
     this.context = context;
     this.sensor_local_polygons = [];
-    for (var i = 0; i < robot_sensors.length; i++) {
-        sensor = robot_sensors[i];
-        var poly = rotate_poly(sensor_polygon, sensor.theta);
-        poly = translate_poly(poly, sensor.pos);
-        poly.push(poly[0]);     // add first element to end again
-        this.sensor_local_polygons[i] = poly;
+    for (var i = 0; i < robot_data.robot_sensors.length; i++) {
+        sensor = robot_data.robot_sensors[i];
+        var np = util.rotate_poly(robot_data.sensor_polygon, sensor.theta);
+        np = util.translate_poly(np, sensor.pos);
+        np.push(np[0]);     // add first element to end again
+        this.sensor_local_polygons[i] = np;
     }
 
     Robot.prototype.move = function(pose) {
-        this.inner_polygon = translate_poly(rotate_poly(robot_inner, pose[2]), pose);
-        this.outer_polygon = translate_poly(rotate_poly(robot_outer, pose[2]), pose);
+        this.inner_polygon = util.translate_poly(util.rotate_poly(robot_data.robot_inner, pose[2]), pose);
+        this.outer_polygon = util.translate_poly(util.rotate_poly(robot_data.robot_outer, pose[2]), pose);
         this.sensor_polygons = [];
-        for (var i = 0; i < robot_sensors.length; i++) {
-            var poly = rotate_poly(this.sensor_local_polygons[i], pose[2]);
-            poly = translate_poly(poly, pose);
-            this.sensor_polygons[i] = poly;
+        for (var i = 0; i < robot_data.robot_sensors.length; i++) {
+            var np = util.rotate_poly(this.sensor_local_polygons[i], pose[2]);
+            np = util.translate_poly(np, pose);
+            this.sensor_polygons[i] = np;
         }
     };
 
@@ -117,7 +119,7 @@ function Robot(context, pose) {
             if (sensor_vector[i]) {
                 this.context.strokeStyle = 'red';
             } else {
-                this.context.strokeStyle = 'black';
+                this.context.strokeStyle = 'blue';
             }
             this.context.stroke();
         }
@@ -147,7 +149,7 @@ function Robot(context, pose) {
         for (var i = 0; i < this.sensor_polygons.length; i++) {
             // NOTE that obsts is external, defined in samiam.html
             for (var j=0; j<obsts.length; j++) {
-                if (polygons_intersect(obsts[j], this.sensor_polygons[i])) {
+                if (poly.polygons_intersect(obsts[j], this.sensor_polygons[i])) {
                     result[i] = true;
                 }
             }
@@ -156,13 +158,20 @@ function Robot(context, pose) {
         return result;
     };
 
-    this.controller = function() {
+    // NOTE: you can override this function by assigning a new one to
+    // the robot you create.
+
+    this.controller = function(dt) {
         // this simulates the movement of the robot.
 
         var angle = this.pose[2]; // current angle
         var v = V;                // normal velocity
         var angular_max = 0;      // maximum sensor angle obtained
         var speed_multiplier = 1;
+
+        if (goal && poly.polygons_intersect(this.outer_polygon, goal_poly)) {
+            return;
+        }
 
         // check the sensors, set up angular_max, which holds the
         // maximum deflection we need.
@@ -183,8 +192,8 @@ function Robot(context, pose) {
                 // 'deflection'. It defines the 'error' from the
                 // reference, which is of course the current angle.
 
-                if (Math.abs(angular_max) < Math.abs(robot_sensors[i].deflection)) {
-                    angular_max = robot_sensors[i].deflection;
+                if (Math.abs(angular_max) < Math.abs(robot_data.robot_sensors[i].deflection)) {
+                    angular_max = robot_data.robot_sensors[i].deflection;
 
                     // The speed_multiplier is a hack. If a sensor
                     // sees something, the front sensors clearly need
@@ -194,7 +203,7 @@ function Robot(context, pose) {
                     // front facing sensors have smaller numbers, side
                     // sensors have larger numbers.
 
-                    speed_multiplier = robot_sensors[i].speed_multiplier;
+                    speed_multiplier = robot_data.robot_sensors[i].speed_multiplier;
                 }
             }
         }
@@ -212,31 +221,26 @@ function Robot(context, pose) {
             // I don't bother with a full PID here. Just follow the error signal around
             // using the proportional term.
 
-            angle += angular_max * Kp;
-            angle = normalize_angle(angle); // normalize the angle to be in [PI,-PI)
+            angle += dt * angular_max * Kp;
+            angle = util.normalize_angle(angle); // normalize the angle to be in [PI,-PI)
             v = V * speed_multiplier;
-        } else {
-            if (goal) {
-                // go to goal
-                desired_angle = Math.atan2(goal[1] - this.pose[1],
-                                            goal[0] - this.pose[0]);
-                delta_angle = normalize_angle(desired_angle - angle);
-                angle += normalize_angle(delta_angle * Kp);
-
-                v = V;
-            }
+        } else if (goal) {
+            // go to goal
+            desired_angle = Math.atan2(goal[1] - this.pose[1],
+                                       goal[0] - this.pose[0]);
+            delta_angle = util.normalize_angle(desired_angle - angle);
+            angle += util.normalize_angle(dt * delta_angle * Kp);
         }
 
         // add some randomness to the mix. This makes the simulation a
         // bit less predictable.
-
-        angle += (Math.random() - 0.5) * Math.PI * randomness;
+        angle += (Math.random() - 0.5) * Math.PI * randomness * dt;
 
         // update the pose using euler integration. no runge kutta for me!
         var co = Math.cos(angle);
         var si = Math.sin(angle);
 
-        var step = v * DT;
+        var step = v * dt;
         this.pose[0] += co*step;
         this.pose[1] += si*step;
         this.pose[2] = angle;
@@ -252,8 +256,9 @@ function Robot(context, pose) {
 
 function run_robot(ctx, pose) {
     var r = new Robot(ctx, pose);
+    var prior_time = 0;
     var cb = function() {
-        r.controller();
+        r.controller(1/60);
     }
-    setInterval(cb, INTERVAL);
+    setInterval(cb, 1000/60);
 };

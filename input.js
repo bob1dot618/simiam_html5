@@ -8,10 +8,14 @@ document.addEventListener('keydown', function(event) {
 
 document.addEventListener('mousedown', function(event) {
     var c = goal_context;
+    
+    var l = (event.offsetX-X-10)/sv;
+    var t = (event.offsetY-Y-10)/sv;
+    var r = (event.offsetX-X+10)/sv;
+    var b = (event.offsetY-Y+10)/sv;
 
-//    console.log(event);
-
-    goal = [(event.offsetX-X)/sv, (event.offsetY-Y)/sv];
+    goal = [(r+l)/2, (b+t)/2];
+    goal_poly = [[l,t],[l,b],[r,b],[r,t],[l,t]];
 
     c.clearRect(0,0,1440,1440);
     c.save();

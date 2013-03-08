@@ -5,42 +5,44 @@
 // polygon intersection code. Used for sensors to determine if the
 // sensor sees an obstacle.
 
-function lines_intersect(a,b,c,d) {
+var poly = new Object();
+
+poly.lines_intersect = function(a,b,c,d) {
     function ccw(a,b,c) {
         return (c[1]-a[1])*(b[0]-a[0]) > (b[1]-a[1])*(c[0]-a[0]);
     }
     return ccw(a,c,d) != ccw(b,c,d) && ccw(a,b,c) != ccw(a,b,d);
 }
 
-function point_in_polygon(pt, poly) {
+poly.point_in_polygon = function(pt, p) {
     var maxpt = [32767,32767];
     var intersections = 0;
 
-    for (var i = 0; i < poly.length; i++) {
-        intersections += lines_intersect(poly[i], poly[(i+1) % poly.length], pt, maxpt);
+    for (var i = 0; i < p.length; i++) {
+        intersections += poly.lines_intersect(p[i], p[(i+1) % p.length], pt, maxpt);
     }
     return (intersections & 1) != 0;
 }
 
-function line_in_polygon(line, poly) {
-    for (var i = 0; i < poly.length; i++) {
-        if (lines_intersect(line[0], line[1], poly[i], poly[(i+1)%poly.length])) {
+poly.line_in_polygon = function(line, p) {
+    for (var i = 0; i < p.length; i++) {
+        if (poly.lines_intersect(line[0], line[1], p[i], p[(i+1)%p.length])) {
             return true;
         }
     }
     return false;
 }
 
-function polygon_in_polygon(poly1, poly2) {
-    for (var i = 0; i < poly1.length; i++) {
-        if (!point_in_polygon(poly1[i], poly2)) {
+poly.polygon_in_polygon = function(p1, p2) {
+    for (var i = 0; i < p1.length; i++) {
+        if (!poly.point_in_polygon(p1[i], p2)) {
             return false;
         }
     }
-    for (var i = 0; i < poly1.length; i++) {
-        for (var j = 0; j < poly2.length; j++) {
-            if (lines_intersect(poly1[i], poly1[(i+1) % poly1.length],
-                                poly2[j], poly2[(j+1) % poly2.length])) {
+    for (var i = 0; i < p1.length; i++) {
+        for (var j = 0; j < p2.length; j++) {
+            if (poly.lines_intersect(p1[i], p1[(i+1) % p1.length],
+                                p2[j], p2[(j+1) % p2.length])) {
                 return false;
             }
         }
@@ -48,25 +50,25 @@ function polygon_in_polygon(poly1, poly2) {
     return true;
 }
 
-function polygons_intersect(poly1, poly2) {
-    // check for poly2 points inside poly1
-    for (var i = 0; i < poly2.length; i++) {
-        if (point_in_polygon(poly2[i], poly1)) {
+poly.polygons_intersect = function(p1, p2) {
+    // check for p2 points inside p1
+    for (var i = 0; i < p2.length; i++) {
+        if (poly.point_in_polygon(p2[i], p1)) {
             return true;
         }
     }
 
-    // check for poly1 points inside poly2
-    for (var i = 0; i < poly1.length; i++) {
-        if (point_in_polygon(poly1[i], poly2)) {
+    // check for p1 points inside p2
+    for (var i = 0; i < p1.length; i++) {
+        if (poly.point_in_polygon(p1[i], p2)) {
             return true;
         }
     }
 
-    for (var i = 0; i < poly1.length; i++) {
-        for (var j = 0; j < poly2.length; j++) {
-            if (lines_intersect(poly1[i], poly1[(i+1)%poly1.length],
-                                poly2[j], poly2[(j+1)%poly2.length])) {
+    for (var i = 0; i < p1.length; i++) {
+        for (var j = 0; j < p2.length; j++) {
+            if (poly.lines_intersect(p1[i], p1[(i+1)%p1.length],
+                                     p2[j], p2[(j+1)%p2.length])) {
                 return true;
             }
         }

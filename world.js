@@ -1,13 +1,18 @@
 var robot_context = document.getElementById('robotCanvas').getContext('2d');
 var obst_context = document.getElementById('obstCanvas').getContext('2d');
+var goal_context = document.getElementById('goalCanvas').getContext('2d');
 var sv = 200;
 var X = 400;
 var Y = 400;
+var goal = null;
 
 var obsts;
 
 function drawObsts(obsts) {
     obst_context.clearRect(0,0,1280,720);
+    obst_context.fillStyle = 'black';
+    obst_context.font = "bold 24px Arial";
+    obst_context.fillText("Click to set a goal", 250, 50);
     obst_context.translate(X,Y); // move drawing surface around
     obst_context.beginPath();
     for (var oi = 0; oi < obsts.length; oi++) {
@@ -18,6 +23,7 @@ function drawObsts(obsts) {
             obst_context.lineTo(sv*obst[(i+1) % obst.length][0], sv*obst[(i+1)%obst.length][1]);
         }
     }
+    obst_context.strokeStyle = 'red';
     obst_context.stroke();
 }            
 

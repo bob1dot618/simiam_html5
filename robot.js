@@ -107,7 +107,7 @@ function Robot(context, pose) {
         this.context.beginPath();
         this.draw_polygon(this.inner_polygon);
         this.draw_polygon(this.outer_polygon);
-        this.context.strokeStyle = 'black'
+        this.context.strokeStyle = 'blue'
         this.context.stroke();
 
         var sensor_vector = this.sensor_vector();
@@ -215,6 +215,16 @@ function Robot(context, pose) {
             angle += angular_max * Kp;
             angle = normalize_angle(angle); // normalize the angle to be in [PI,-PI)
             v = V * speed_multiplier;
+        } else {
+            if (goal) {
+                // go to goal
+                desired_angle = Math.atan2(goal[1] - this.pose[1],
+                                            goal[0] - this.pose[0]);
+                delta_angle = normalize_angle(desired_angle - angle);
+                angle += normalize_angle(delta_angle * Kp);
+
+                v = V;
+            }
         }
 
         // add some randomness to the mix. This makes the simulation a
